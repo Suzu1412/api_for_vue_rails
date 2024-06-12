@@ -1,8 +1,9 @@
 <template>
 <v-sheet class="pa-12" rounded>
     <v-card class="mx-auto px-6 py-8" max-width="344">
-      <v-form ref ="form"
-        validate-on="input"
+      <v-form ref="form"
+        v-model="isValid"
+        validate-on="input lazy"
         @submit.prevent="onSubmit"
       >
         <v-text-field
@@ -27,7 +28,7 @@
 
         <v-btn v-if="isEditing"
           @click="updatePost"
-          :disabled="!form"
+          :disabled="!isValid"
           :loading="loading"
           color="success"
           size="large"
@@ -40,7 +41,6 @@
 
         <v-btn v-if="isEditing"
           @click="cancelEdit"
-          :disabled="!form"
           :loading="loading"
           color="error"
           size="large"
@@ -53,7 +53,7 @@
 
         <v-btn v-else
           @click="createPost"
-          :disabled="!valid"
+          :disabled="!isValid"
           :loading="loading"
           color="primary"
           size="large"
@@ -109,25 +109,27 @@
 
         const dataResponse = await res.json()
 
-        posts.value.push(data);
-        title: null
+        posts.value.push(data)
+        this.$refs.form.reset()
     }
 
     export default {
-    data: () => ({
-      form: false,
-      title: null,
-      body: null,
-      valid: false,
-      loading: false,
-      isEditing: false,
-    }),
-
+    data () {
+        return {
+            title: null,
+            body: null,
+            isValid: false,
+            loading: false,
+            isEditing: false,
+        }
+    },
     methods: {
       async createPost () {
         const { valid } = await this.$refs.form.validate()
+        console.log(valid)
         if (!valid) return
 
+        this.$refs.form.reset()
         console.log("Creando post");
       },
       async updatePost () {
@@ -136,16 +138,8 @@
       reset () {
         this.$refs.form.reset()
       },
-      onInput(){
-        console.log("escribiendo");
-        valid = this.$refs.form.validate()
-      },
-
-
       onSubmit () {
 
-        console.log("escribiendo");
-        valid = this.$refs.form.validate()
         //const { valid } = this.$refs.form.validate()
 
         //if (!valid) return
@@ -154,11 +148,10 @@
 
         //setTimeout(() => (this.loading = false), 2000)
       },
-      required (input) {
+    required (input) {
         return !!input || 'Campo requerido'
       },
     }
-    
   }
 </script>
 
