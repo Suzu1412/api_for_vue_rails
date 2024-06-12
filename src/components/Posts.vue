@@ -78,13 +78,13 @@
       </v-form>
     </v-card>
   </v-sheet>
+
   </template>
-
-
 <script>
     import { ref, onMounted } from 'vue'
+    import { toast } from 'vue3-toastify'
+    import 'vue3-toastify/dist/index.css'
 
-    const posts = ref([])
     const API_URL = "http://localhost:3000/posts"   
 
     const updatePost = async() => {
@@ -95,23 +95,7 @@
         return true;
     }
 
-    const createPost = async() => {
-        const res = await fetch(API_URL, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                title: title.value,
-                body: body.value
-            })
-        } )
-
-        const dataResponse = await res.json()
-
-        posts.value.push(data)
-        this.$refs.form.reset()
-    }
+    const posts = ref([])
 
     export default {
     data () {
@@ -123,14 +107,31 @@
             isEditing: false,
         }
     },
+    async mounted(){
+      const { valid } = await this.$refs.form.validate()
+      console.log(valid);
+    },
     methods: {
       async createPost () {
         const { valid } = await this.$refs.form.validate()
-        console.log(valid)
         if (!valid) return
 
+        const res = await fetch(API_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                "Access-Control-Allow-Origin": "*"
+            },
+            body: JSON.stringify({
+                title: this.title,
+                body: this.body
+            })
+        } )
+
+        const dataResponse = await res.json()
+        posts.value.push(dataResponse)
         this.$refs.form.reset()
-        console.log("Creando post");
+        toast.success('Wow so easy !', { autoclose: 1000 } )
       },
       async updatePost () {
         console.log("Actualizando post");
