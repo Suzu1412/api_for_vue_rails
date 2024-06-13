@@ -77,11 +77,42 @@
 
       </v-form>
     </v-card>
+
+    <li v-for="(post, index) in postsArray" :key="index" class="list-group-item">{{index + 1}}. {{post}}</li>
+
   </v-sheet>
 
+
   </template>
+
+<script setup>
+  import { ref, onMounted } from 'vue'
+  import axios from 'axios'
+
+  const API_URL = "http://localhost:3000/posts/"  
+  const postsArray = ref([])
+  const axiosInstance = axios.create({
+    baseURL: '/'
+  });
+
+
+  onMounted(async() => {
+    axios.get('/api/posts')
+      .then(response => {
+        postsArray.value = response.data
+      })
+      .catch(error => {
+        //console.log(error)
+      })
+
+      
+  })
+
+</script>
+
 <script>
     import { ref, onMounted } from 'vue'
+    import axios from 'axios'
     import { toast } from 'vue3-toastify'
     import 'vue3-toastify/dist/index.css'
 
@@ -95,7 +126,8 @@
         return true;
     }
 
-    const posts = ref([])
+    const newPosts = ref([])
+    const info = ref([])
 
     export default {
     data () {
@@ -105,33 +137,50 @@
             isValid: false,
             loading: false,
             isEditing: false,
+            posts: []
         }
     },
     async mounted(){
-      const { valid } = await this.$refs.form.validate()
-      console.log(valid);
+      //console.log(newPosts)
+      // const { valid } = await this.$refs.form.validate()
+
+      //const res = await axios.get(API_URL)
+      // newPosts.value = res.data
+
+      //console.log(res.data)
+
+      //console.log(newPosts.value[0])
+
     },
     methods: {
       async createPost () {
         const { valid } = await this.$refs.form.validate()
         if (!valid) return
 
-        const res = await fetch(API_URL, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                "Access-Control-Allow-Origin": "*"
-            },
-            body: JSON.stringify({
-                title: this.title,
-                body: this.body
-            })
-        } )
+        const post = {
+          title: this.title,
+          body: this.body,
+        }
+        axios.post("api/posts", post)
+        .then(response =>{
+          axios.get('/api/posts/' + response.data.id)
+          .then(response => {
+            console.log(response.data)
+          })
+          .catch(error => {
+            console.log(error)
+          })
 
-        const dataResponse = await res.json()
-        posts.value.push(dataResponse)
-        this.$refs.form.reset()
-        toast.success('Wow so easy !', { autoclose: 1000 } )
+          this.$refs.form.reset()
+          toast.success('¡Se ha creado exitosamente!', { autoclose: 1000 } )
+        })
+        .catch(error => {
+          console.log(error)
+          toast.error('Fallo' + error)
+        })
+
+        // posts.value.push(dataResponse)
+        
       },
       async updatePost () {
         console.log("Actualizando post");
