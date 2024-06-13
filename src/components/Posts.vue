@@ -1,3 +1,5 @@
+
+
 <template>
 <v-sheet class="pa-12" rounded>
     <v-card class="mx-auto px-6 py-8" max-width="344">
@@ -52,7 +54,7 @@
         </v-btn>
 
         <v-btn v-else
-          @click="createPost"
+          @click="SubmitCreatePost"
           :disabled="!isValid"
           :loading="loading"
           color="primary"
@@ -88,13 +90,12 @@
 <script setup>
   import { ref, onMounted } from 'vue'
   import axios from 'axios'
+  import { VForm } from 'vuetify/components';
 
-  const API_URL = "http://localhost:3000/posts/"  
   const postsArray = ref([])
-  const axiosInstance = axios.create({
-    baseURL: '/'
-  });
-
+  const title = ref('')
+  const body = ref('')
+  const form = ref(null) // Para acceder al ref Form lo inicializamos como Null
 
   onMounted(async() => {
     axios.get('/api/posts')
@@ -102,12 +103,42 @@
         postsArray.value = response.data
       })
       .catch(error => {
-        //console.log(error)
+        console.log(error)
+        toast.error('Fallo: ' + error)
       })
-
-      
   })
 
+  // Methods:
+  const SubmitCreatePost = async() => {
+    const post = {
+          title: title.value,
+          body: body.value,
+    }
+
+    axios.post("api/posts", post)
+        .then(async response =>{
+          toast.success('¡Se ha creado exitosamente!', { autoclose: 1000 } )
+          form.value.reset()
+          const newPost = await axios.get("api/posts/"+response.data.id)
+          postsArray.value.push(newPost.data)
+        })
+        .catch(error => {
+          console.log(error)
+          toast.error('Fallo: ' + error)
+        })
+  }
+
+  const GetPost = async(id) => {
+    axios.get("api/posts/"+id)
+    .then(response => {
+      return response.data
+    })
+    .catch(error => {
+      console.log(error)
+      toast.error('Fallo' + error)
+      return null
+    })
+  }
 </script>
 
 <script>
@@ -163,14 +194,6 @@
         }
         axios.post("api/posts", post)
         .then(response =>{
-          axios.get('/api/posts/' + response.data.id)
-          .then(response => {
-            console.log(response.data)
-          })
-          .catch(error => {
-            console.log(error)
-          })
-
           this.$refs.form.reset()
           toast.success('¡Se ha creado exitosamente!', { autoclose: 1000 } )
         })
