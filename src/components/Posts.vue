@@ -141,44 +141,108 @@
 
           <template v-slot:default="{ isActive }">
             <v-card :title="formTitle">
+              <v-form ref="form"
+                      v-model="isValid"
+                      validate-on="input lazy"
+                      @submit.prevent="onSubmit"
+                    >
+
               <v-card-text>
                 <v-container>
-                  <v-row>
-                    <v-col
-                      cols="12"
-                      md="12"
-                      sm="12"
-                    >
-                      <v-text-field
-                        v-model="postItem.title"
-                        label="Título"
-                      ></v-text-field>
-                    </v-col>
-                    <v-col
-                      cols="12"
-                      md="12"
-                      sm="12"
-                    >
-                      <v-text-field
-                        v-model="postItem.body"
-                        label="Texto"
-                      ></v-text-field>
-                    </v-col>
-                    
-                    
-                    
-                  </v-row>
+                    <v-row>
+                        <v-col cols="12" md="12" sm="12">
+                          <v-text-field
+                            v-model="postItem.title"
+                            :readonly="loading"
+                            :rules="[requiredInput]"
+                            label="Título"
+                            clearable
+                          ></v-text-field>
+                        </v-col>
+                        <v-col cols="12" md="12" sm="12">
+                          <v-text-field
+                          v-model="postItem.body"
+                          :readonly="loading"
+                          :rules="[requiredInput]"
+                          label="Texto"
+                          placeholder="Ingresa el texto"
+                          clearable
+                        ></v-text-field>
+                        </v-col>
+
+                        <br>
+
+                        <v-btn v-if="isEditing"
+                          @click="updatePost"
+                          :disabled="!isValid"
+                          :loading="loading"
+                          color="success"
+                          size="large"
+                          type="submit"
+                          variant="elevated"
+                          block
+                        >
+                          Actualizar Post
+                        </v-btn>
+
+                        <v-btn v-if="isEditing"
+                          @click="cancelEdit"
+                          :loading="loading"
+                          color="error"
+                          size="large"
+                          type="submit"
+                          variant="elevated"
+                          block
+                        >
+                          Cancelar
+                        </v-btn>
+
+                        <v-btn v-else
+                          @click="SubmitCreatePost"
+                          :disabled="!isValid"
+                          :loading="loading"
+                          color="primary"
+                          size="large"
+                          type="submit"
+                          variant="elevated"
+                          block
+                        >
+                          Crear nuevo Post
+                        </v-btn>
+
+                        <v-btn
+                          @click="resetInput"
+                          color="info"
+                          size="large"
+                          type="submit"
+                          variant="elevated"
+                          block
+                        >
+                          Reset
+                        </v-btn>
+                    </v-row>
                 </v-container>
               </v-card-text>
-
               <v-card-actions>
                 <v-spacer></v-spacer>
+                  <v-btn
+                    text="Cerrar"
+                    color="blue-darken-1"
+                    variant="text"
+                    @click="isActive.value = false"
+                  >
+                </v-btn>
 
                 <v-btn
-                  text="Close Dialog"
-                  @click="isActive.value = false"
-                ></v-btn>
+                  :disabled="!isValid"
+                  text="Crear"
+                  color="blue-darken-1"
+                  variant="text"
+                  @click="SubmitCreatePost"
+                >
+                </v-btn>
               </v-card-actions>
+              </v-form>
             </v-card>
           </template>
         </v-dialog>
@@ -296,13 +360,7 @@
   }
 
   const SubmitCreatePost = async() => {
-    console.log(title)
-    const post = {
-          title: title.value,
-          body: body.value,
-    }
-
-    axios.post("api/posts", post)
+    axios.post("api/posts", postItem.value)
         .then(async response =>{
           toast.success('¡Se ha creado exitosamente!', { autoclose: 1000 } )
           form.value.reset()
