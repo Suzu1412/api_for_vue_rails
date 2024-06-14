@@ -2,116 +2,6 @@
 
 <template>
 <v-sheet class="pa-12" rounded>
-    <v-card class="mx-auto px-6 py-8" max-width="344">
-      <v-form ref="form"
-        v-model="isValid"
-        validate-on="input lazy"
-        @submit.prevent="onSubmit"
-      >
-        <v-text-field
-          v-model="title"
-          :readonly="loading"
-          :rules="[requiredInput]"
-          class="mb-2"
-          label="Título"
-          clearable
-        ></v-text-field>
-
-        <v-text-field
-          v-model="body"
-          :readonly="loading"
-          :rules="[requiredInput]"
-          label="Texto"
-          placeholder="Ingresa el texto"
-          clearable
-        ></v-text-field>
-
-        <br>
-
-        <v-btn v-if="isEditing"
-          @click="updatePost"
-          :disabled="!isValid"
-          :loading="loading"
-          color="success"
-          size="large"
-          type="submit"
-          variant="elevated"
-          block
-        >
-          Actualizar Post
-        </v-btn>
-
-        <v-btn v-if="isEditing"
-          @click="cancelEdit"
-          :loading="loading"
-          color="error"
-          size="large"
-          type="submit"
-          variant="elevated"
-          block
-        >
-          Cancelar
-        </v-btn>
-
-        <v-btn v-else
-          @click="SubmitCreatePost"
-          :disabled="!isValid"
-          :loading="loading"
-          color="primary"
-          size="large"
-          type="submit"
-          variant="elevated"
-          block
-        >
-          Crear nuevo Post
-        </v-btn>
-
-        <v-btn
-          @click="resetInput"
-          color="info"
-          size="large"
-          type="submit"
-          variant="elevated"
-          block
-        >
-          Reset
-        </v-btn>
-
-      </v-form>
-    </v-card>
-
-
-    <v-dialog max-width="500">
-  <template v-slot:activator="{ props: activatorProps }">
-    <v-btn
-      v-bind="activatorProps"
-      color="surface-variant"
-      text="Open Dialog"
-      variant="flat"
-    ></v-btn>
-  </template>
-
-  <template v-slot:default="{ isActive }">
-    <v-card title="Dialog">
-      <v-card-text>
-        Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
-      </v-card-text>
-
-      <v-card-actions>
-        <v-spacer></v-spacer>
-
-        <v-btn
-          text="Close Dialog"
-          @click="isActive.value = false"
-        ></v-btn>
-      </v-card-actions>
-    </v-card>
-  </template>
-</v-dialog>
-
-
-
-
   <v-data-table
     :headers="headers"
     :items="postsArray"
@@ -129,13 +19,14 @@
         ></v-divider>
         <v-spacer></v-spacer>
         
-        <v-dialog max-width="500">
+        <v-dialog max-width="500" v-model="formDialog">
           <template v-slot:activator="{ props: activatorProps }">
             <v-btn
               v-bind="activatorProps"
               color="surface-variant"
               text="Nuevo Post"
               variant="flat"
+              @click="openformDialog"
             ></v-btn>
           </template>
 
@@ -171,55 +62,6 @@
                         </v-col>
 
                         <br>
-
-                        <v-btn v-if="isEditing"
-                          @click="updatePost"
-                          :disabled="!isValid"
-                          :loading="loading"
-                          color="success"
-                          size="large"
-                          type="submit"
-                          variant="elevated"
-                          block
-                        >
-                          Actualizar Post
-                        </v-btn>
-
-                        <v-btn v-if="isEditing"
-                          @click="cancelEdit"
-                          :loading="loading"
-                          color="error"
-                          size="large"
-                          type="submit"
-                          variant="elevated"
-                          block
-                        >
-                          Cancelar
-                        </v-btn>
-
-                        <v-btn v-else
-                          @click="SubmitCreatePost"
-                          :disabled="!isValid"
-                          :loading="loading"
-                          color="primary"
-                          size="large"
-                          type="submit"
-                          variant="elevated"
-                          block
-                        >
-                          Crear nuevo Post
-                        </v-btn>
-
-                        <v-btn
-                          @click="resetInput"
-                          color="info"
-                          size="large"
-                          type="submit"
-                          variant="elevated"
-                          block
-                        >
-                          Reset
-                        </v-btn>
                     </v-row>
                 </v-container>
               </v-card-text>
@@ -229,7 +71,7 @@
                     text="Cerrar"
                     color="blue-darken-1"
                     variant="text"
-                    @click="isActive.value = false"
+                    @click="formDialog = false"
                   >
                 </v-btn>
 
@@ -238,7 +80,7 @@
                   text="Crear"
                   color="blue-darken-1"
                   variant="text"
-                  @click="SubmitCreatePost"
+                  @click="CreatePost"
                 >
                 </v-btn>
               </v-card-actions>
@@ -246,15 +88,13 @@
             </v-card>
           </template>
         </v-dialog>
-
-
-        <v-dialog v-model="dialogDelete" max-width="500px">
+        <v-dialog v-model="deleteDialog" max-width="500px">
           <v-card>
-            <v-card-title class="text-h5">Are you sure you want to delete this item?</v-card-title>
+            <v-card-title class="text-h5">Eliminar: {{postItem.title}}</v-card-title>
             <v-card-actions>
               <v-spacer></v-spacer>
-              <v-btn color="blue-darken-1" variant="text" @click="closeDelete">Cancel</v-btn>
-              <v-btn color="blue-darken-1" variant="text" @click="deleteItemConfirm">OK</v-btn>
+              <v-btn color="blue-darken-1" variant="text" @click="deleteDialog = false">Cancel</v-btn>
+              <v-btn color="blue-darken-1" variant="text" @click="DeletePost">OK</v-btn>
               <v-spacer></v-spacer>
             </v-card-actions>
           </v-card>
@@ -263,16 +103,14 @@
     </template>
     <template v-slot:item.actions="{ item }">
       <v-icon
-        class="me-2"
-        color="info"
         size="small"
-        @click="editItem(item)"
+        @click="editItemDialog(item)"
       >
         mdi-pencil
       </v-icon>
       <v-icon
         size="small"
-        @click="deleteItem(item)"
+        @click="deleteItemDialog(item)"
       >
         mdi-delete
       </v-icon>
@@ -307,17 +145,17 @@
   import 'vue3-toastify/dist/index.css'
 
   const postsArray = ref([])
-  const title = ref('')
-  const body = ref('')
+  const postId = ref(0)
   const form = ref(null) // Para acceder al ref Form lo inicializamos como Null
   const loading = ref(false)
   const isEditing = ref(false)
   const isValid = ref(null)
-  const formTitle = 'Crear nuevo formulario'
+  const formTitle = ref('')
+  const formDialog = ref(false)
+  const deleteDialog = ref(false)
 
   // Data Table Variables
   // const dialog = ref('')
-  const isa = ref(false)
   const search = ''
   const headers = ref([
           {
@@ -359,7 +197,7 @@
         setTimeout(() => (loading = false), 2000)
   }
 
-  const SubmitCreatePost = async() => {
+  const CreatePost = async() => {
     axios.post("api/posts", postItem.value)
         .then(async response =>{
           toast.success('¡Se ha creado exitosamente!', { autoclose: 1000 } )
@@ -385,6 +223,41 @@
     })
   }
 
+  const DeletePost = async() => {
+    axios.delete("api/posts/"+postId.value)
+        .then(async response =>{
+          postsArray.value.splice(postsArray.value.findIndex(item => item.id === postId.value), 1)
+          deleteDialog.value = false
+          toast.success('¡Se ha eliminado exitosamente!', { autoclose: 1000 } )
+        })
+        .catch(error => {
+          console.log(error)
+          toast.error('Fallo: ' + error)
+        })
+  }
+
+  // Dialog Methods
+  const openformDialog = () => {
+    postId.value = 0
+    postItem.value = {}
+    formDialog.value = true
+    formTitle.value = "Crear Nuevo Post"
+  } 
+
+  const editItemDialog = (item) => {
+    postId.value = postsArray.value.indexOf(item)
+    postItem.value = Object.assign({}, item)
+    formDialog.value = true
+    formTitle.value = "Editar Post"
+  }
+
+  const deleteItemDialog = (item) => {
+    postId.value = item.id
+    postItem.value = Object.assign({}, item)
+    deleteDialog.value = true
+  }
+
+  // Validation Methods:
   const resetInput = () => {
     form.value.reset()
   }
