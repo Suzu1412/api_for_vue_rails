@@ -13,6 +13,7 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url))
     }
   },
+  // Configurar Servidor para hacer compatible con CORS - Requiere usar Axios
   server: {
     proxy: {
       '/api': {

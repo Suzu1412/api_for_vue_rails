@@ -11,7 +11,7 @@
         <v-text-field
           v-model="title"
           :readonly="loading"
-          :rules="[required]"
+          :rules="[requiredInput]"
           class="mb-2"
           label="Título"
           clearable
@@ -20,7 +20,7 @@
         <v-text-field
           v-model="body"
           :readonly="loading"
-          :rules="[required]"
+          :rules="[requiredInput]"
           label="Texto"
           placeholder="Ingresa el texto"
           clearable
@@ -67,7 +67,7 @@
         </v-btn>
 
         <v-btn
-          @click="reset"
+          @click="resetInput"
           color="info"
           size="large"
           type="submit"
@@ -80,8 +80,164 @@
       </v-form>
     </v-card>
 
-    <li v-for="(post, index) in postsArray" :key="index" class="list-group-item">{{index + 1}}. {{post}}</li>
+  <v-data-table
+    :headers="headers"
+    :items="postsArray"
+    :sort-by="[{ key: 'id', order: 'asc' }]"
+  >
+    <template v-slot:top>
+      <v-toolbar
+        flat
+      >
+        <v-toolbar-title>My CRUD</v-toolbar-title>
+        <v-divider
+          class="mx-4"
+          inset
+          vertical
+        ></v-divider>
+        <v-spacer></v-spacer>
+        <v-dialog
+          v-model="dialog"
+          max-width="500px"
+        >
+          <template v-slot:activator="{ props }">
+            <v-btn
+              class="mb-2"
+              color="primary"
+              dark
+              v-bind="props"
+            >
+              New Item
+            </v-btn>
+          </template>
+          <v-card>
+            <v-card-title>
+              <span class="text-h5">{{ formTitle }}</span>
+            </v-card-title>
 
+            <v-card-text>
+              <v-container>
+                <v-row>
+                  <v-col
+                    cols="12"
+                    md="4"
+                    sm="6"
+                  >
+                    <v-text-field
+                      v-model="editedItem.name"
+                      label="Dessert name"
+                    ></v-text-field>
+                  </v-col>
+                  <v-col
+                    cols="12"
+                    md="4"
+                    sm="6"
+                  >
+                    <v-text-field
+                      v-model="editedItem.calories"
+                      label="Calories"
+                    ></v-text-field>
+                  </v-col>
+                  <v-col
+                    cols="12"
+                    md="4"
+                    sm="6"
+                  >
+                    <v-text-field
+                      v-model="editedItem.fat"
+                      label="Fat (g)"
+                    ></v-text-field>
+                  </v-col>
+                  <v-col
+                    cols="12"
+                    md="4"
+                    sm="6"
+                  >
+                    <v-text-field
+                      v-model="editedItem.carbs"
+                      label="Carbs (g)"
+                    ></v-text-field>
+                  </v-col>
+                  <v-col
+                    cols="12"
+                    md="4"
+                    sm="6"
+                  >
+                    <v-text-field
+                      v-model="editedItem.protein"
+                      label="Protein (g)"
+                    ></v-text-field>
+                  </v-col>
+                </v-row>
+              </v-container>
+            </v-card-text>
+
+            <v-card-actions>
+              <v-spacer></v-spacer>
+              <v-btn
+                color="blue-darken-1"
+                variant="text"
+                @click="close"
+              >
+                Cancel
+              </v-btn>
+              <v-btn
+                color="blue-darken-1"
+                variant="text"
+                @click="save"
+              >
+                Save
+              </v-btn>
+            </v-card-actions>
+          </v-card>
+        </v-dialog>
+        <v-dialog v-model="dialogDelete" max-width="500px">
+          <v-card>
+            <v-card-title class="text-h5">Are you sure you want to delete this item?</v-card-title>
+            <v-card-actions>
+              <v-spacer></v-spacer>
+              <v-btn color="blue-darken-1" variant="text" @click="closeDelete">Cancel</v-btn>
+              <v-btn color="blue-darken-1" variant="text" @click="deleteItemConfirm">OK</v-btn>
+              <v-spacer></v-spacer>
+            </v-card-actions>
+          </v-card>
+        </v-dialog>
+      </v-toolbar>
+    </template>
+    <template v-slot:item.actions="{ item }">
+      <v-icon
+        class="me-2"
+        color="info"
+        size="small"
+        @click="editItem(item)"
+      >
+        mdi-pencil
+      </v-icon>
+      <v-icon
+        size="small"
+        @click="deleteItem(item)"
+      >
+        mdi-delete
+      </v-icon>
+    </template>
+    <template v-slot:no-data>
+      <v-btn
+        color="primary"
+        @click="initialize"
+      >
+        Reset
+      </v-btn>
+    </template>
+  </v-data-table>
+
+
+    <v-data-table
+      :headers="headers"
+      :items="postsArray"
+      :search="search"
+      item-key="id"
+      items-per-page="5"
+    ></v-data-table>
   </v-sheet>
 
 
@@ -90,12 +246,31 @@
 <script setup>
   import { ref, onMounted } from 'vue'
   import axios from 'axios'
-  import { VForm } from 'vuetify/components';
+  import { toast } from 'vue3-toastify'
+  import 'vue3-toastify/dist/index.css'
 
   const postsArray = ref([])
   const title = ref('')
   const body = ref('')
   const form = ref(null) // Para acceder al ref Form lo inicializamos como Null
+  const loading = ref(false)
+  const isEditing = ref(false)
+  const isValid = ref(null)
+
+  // Data Table Variables
+  const search = ''
+  const headers = ref([
+          {
+            align: 'start',
+            key: 'id',
+            sortable: true,
+            title: 'ID',
+          },
+          { key: 'title', title: 'Título' },
+          { key: 'body', title: 'Texto' },
+          { title: 'Actions', key: 'actions', sortable: false },
+        ])
+
 
   onMounted(async() => {
     axios.get('/api/posts')
@@ -109,7 +284,18 @@
   })
 
   // Methods:
+  const onSubmit = () => {
+    const { valid } = this.$refs.form.validate()
+
+        if (!valid) return
+
+        loading = true
+
+        setTimeout(() => (loading = false), 2000)
+  }
+
   const SubmitCreatePost = async() => {
+    console.log(title)
     const post = {
           title: title.value,
           body: body.value,
@@ -139,94 +325,16 @@
       return null
     })
   }
-</script>
 
-<script>
-    import { ref, onMounted } from 'vue'
-    import axios from 'axios'
-    import { toast } from 'vue3-toastify'
-    import 'vue3-toastify/dist/index.css'
+  const resetInput = () => {
+    form.value.reset()
+  }
 
-    const API_URL = "http://localhost:3000/posts"   
-
-    const updatePost = async() => {
-        return true;
-    }
-
-    const cancelEdit = () => {
-        return true;
-    }
-
-    const newPosts = ref([])
-    const info = ref([])
-
-    export default {
-    data () {
-        return {
-            title: null,
-            body: null,
-            isValid: false,
-            loading: false,
-            isEditing: false,
-            posts: []
-        }
-    },
-    async mounted(){
-      //console.log(newPosts)
-      // const { valid } = await this.$refs.form.validate()
-
-      //const res = await axios.get(API_URL)
-      // newPosts.value = res.data
-
-      //console.log(res.data)
-
-      //console.log(newPosts.value[0])
-
-    },
-    methods: {
-      async createPost () {
-        const { valid } = await this.$refs.form.validate()
-        if (!valid) return
-
-        const post = {
-          title: this.title,
-          body: this.body,
-        }
-        axios.post("api/posts", post)
-        .then(response =>{
-          this.$refs.form.reset()
-          toast.success('¡Se ha creado exitosamente!', { autoclose: 1000 } )
-        })
-        .catch(error => {
-          console.log(error)
-          toast.error('Fallo' + error)
-        })
-
-        // posts.value.push(dataResponse)
-        
-      },
-      async updatePost () {
-        console.log("Actualizando post");
-      },
-      reset () {
-        this.$refs.form.reset()
-      },
-      onSubmit () {
-
-        //const { valid } = this.$refs.form.validate()
-
-        //if (!valid) return
-
-        //this.loading = true
-
-        //setTimeout(() => (this.loading = false), 2000)
-      },
-    required (input) {
-        return !!input || 'Campo requerido'
-      },
-    }
+  const requiredInput = (input) => {
+    return !!input || 'Campo requerido'
   }
 </script>
+
 
 <style scoped>
 </style>
