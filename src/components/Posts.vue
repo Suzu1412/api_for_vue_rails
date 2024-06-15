@@ -170,6 +170,7 @@
     { key: 'actions', title: 'Acciones', sortable: false },
   ])
 
+  // Methods:
   onMounted(async() => {
     GetAllPostAPI()
       .then(response => {
