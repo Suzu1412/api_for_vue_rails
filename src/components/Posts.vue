@@ -172,14 +172,7 @@
 
   // Methods:
   onMounted(async() => {
-    GetAllPostAPI()
-      .then(response => {
-        postsArray.value = response.data
-      })
-      .catch(error => {
-        console.log(error)
-        toast.error('Fallo: ' + error)
-      })
+    GetAllPost()
   })
 
   // Submit Methods:
@@ -243,6 +236,17 @@
         postsArray.value.splice(postsArray.value.findIndex(item => item.id === postId.value), 1)
         deleteDialog.value = false
         toast.success('¡Se ha eliminado exitosamente!', { autoclose: 1000 } )
+      })
+      .catch(error => {
+        console.log(error)
+        toast.error('Fallo: ' + error)
+      })
+  }
+
+  const GetAllPost = async() => {
+    GetAllPostAPI()
+      .then(response => {
+        postsArray.value = response.data
       })
       .catch(error => {
         console.log(error)
