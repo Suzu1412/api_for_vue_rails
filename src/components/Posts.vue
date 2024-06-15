@@ -152,7 +152,7 @@
         }
     },
     async mounted(){
-      
+      this.GetAllPost()
     },
     methods: {
       async createPost () {
