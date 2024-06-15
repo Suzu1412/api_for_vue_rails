@@ -2,7 +2,7 @@
   <v-sheet class="pa-12" rounded>
     <v-data-table
       :headers="headers"
-      :items="postsArray"
+      :items="postsArray.value"
       :sort-by="[{ key: 'id', order: 'asc' }]"
     >
       <template v-slot:top>
@@ -133,37 +133,11 @@
   </v-sheet>
 </template>
 
-<script setup>
-  
-
-  const postsArray = ref([])
-
-  onMounted(async() => {
-    
-
-      
-  })
-
-</script>
-
 <script>
     import { ref, onMounted } from 'vue'
     import axios from 'axios'
     import { toast } from 'vue3-toastify'
     import 'vue3-toastify/dist/index.css'
-
-    const API_URL = "http://localhost:3000/posts"   
-
-    const updatePost = async() => {
-        return true;
-    }
-
-    const cancelEdit = () => {
-        return true;
-    }
-
-    const newPosts = ref([])
-    const info = ref([])
 
     export default {
     data () {
@@ -173,17 +147,12 @@
             isValid: false,
             loading: false,
             isEditing: false,
-            posts: []
+            posts: [],
+            postsArray: ref([]),
         }
     },
     async mounted(){
-      axios.get('/api/posts')
-      .then(response => {
-        postsArray.value = response.data
-      })
-      .catch(error => {
-        //console.log(error)
-      })
+      
     },
     methods: {
       async createPost () {
@@ -221,15 +190,20 @@
       reset () {
         this.$refs.form.reset()
       },
+      // Post Methods:
+      async GetAllPost (){
+        axios.get('/api/posts')
+          .then(response => {
+            console.log(this.postsArray)
+            this.postsArray.value = response.data
+          })
+          .catch(error => {
+            console.log(error)
+          })
+      },
       onSubmit () {
-
-        //const { valid } = this.$refs.form.validate()
-
-        //if (!valid) return
-
-        //this.loading = true
-
-        //setTimeout(() => (this.loading = false), 2000)
+        const { valid } = this.$refs.form.validate()
+        if (!valid) return
       },
     required (input) {
         return !!input || 'Campo requerido'
