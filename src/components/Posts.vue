@@ -142,64 +142,133 @@
     export default {
     data () {
         return {
-            title: null,
-            body: null,
-            isValid: false,
-            loading: false,
-            isEditing: false,
-            posts: [],
+            // Form Variables
+            form: ref(null),
+            loading: ref(false),
+            isEditing: ref(false),
+            isValid: ref(null),
+            formTitle: ref(''),
+            // Post Variables
             postsArray: ref([]),
+            postId: ref(0),
+            postItem: ref({
+              title: '',
+              body: '',
+            }),
+            // Dialog Variables
+            formDialog: ref(false),
+            deleteDialog: ref(false),
+            // Data Table Variables
+            headers: ref([
+              {
+                align: 'start',
+                key: 'id',
+                sortable: true,
+                title: 'ID',
+              },
+              { key: 'title', title: 'Título' },
+              { key: 'body', title: 'Texto' },
+              { key: 'actions', title: 'Acciones', sortable: false },
+            ]),
         }
     },
     async mounted(){
       this.GetAllPost()
     },
     methods: {
-      async createPost () {
+      // CRUD Methods
+      async CreatePost () {
         const { valid } = await this.$refs.form.validate()
         if (!valid) return
 
-        const post = {
-          title: this.title,
-          body: this.body,
-        }
-        axios.post("api/posts", post)
-        .then(response =>{
-          axios.get('/api/posts/' + response.data.id)
-          .then(response => {
-            console.log(response.data)
+        this.CreatePostAPI(this.postItem)
+          .then(async response =>{
+            toast.success('¡Se ha creado exitosamente!', { autoclose: 1000 } )
+            this.$refs.form.reset()
+            this.GetPost(response.data.id)
           })
           .catch(error => {
             console.log(error)
+            toast.error('Fallo: ' + error)
           })
+      },
+      async EditPost () {
+        const { valid } = await this.$refs.form.validate()
+        if (!valid) return
 
-          this.$refs.form.reset()
-          toast.success('¡Se ha creado exitosamente!', { autoclose: 1000 } )
-        })
-        .catch(error => {
-          console.log(error)
-          toast.error('Fallo' + error)
-        })
-
-        // posts.value.push(dataResponse)
-        
+        this.EditPostAPI(this.postId, this.postItem)
+          .then(async response =>{
+            toast.success('¡Se ha editado exitosamente!', { autoclose: 1000 } )
+            this.$refs.form.reset()
+            this.GetPost(response.data.id)
+          })
+          .catch(error => {
+            console.log(error)
+            toast.error('Fallo: ' + error)
+          })
       },
-      async updatePost () {
-        console.log("Actualizando post");
+      async DeletePost () {
+        this.DeletePostAPI(postId.value)
+          .then(async response =>{
+            let index = postsArray.value.findIndex(item => item.id === postId.value)
+            this.postsArray.value.splice(index, 1)
+            this.deleteDialog = false
+            toast.success('¡Se ha eliminado exitosamente!', { autoclose: 1000 } )
+          })
+          .catch(error => {
+            console.log(error)
+            toast.error('Fallo: ' + error)
+          })
       },
-      reset () {
-        this.$refs.form.reset()
-      },
-      // Post Methods:
       async GetAllPost (){
-        axios.get('/api/posts')
+        this.GetAllPostAPI()
           .then(response => {
-            console.log(this.postsArray)
             this.postsArray.value = response.data
           })
           .catch(error => {
             console.log(error)
           })
+      },
+      async GetPost(id) {
+        this.GetPostAPI(id)
+          .then(async response => {
+            let index = this.postsArray.value.findIndex(item => item.id === response.data.id)
+            if (index === -1){ // If it doesn't exist add to Array (Used on Create)
+              this.postsArray.value.push(response.data)
+            }else { // Else Replace value on the same Index (Used on Edit)
+              this.postsArray.value.splice(index, 1, response.data)
+            }
+          })
+          .catch(error => {
+            console.log(error)
+            toast.error('Fallo: ' + error)
+        })
+      },
+      // REST Methods API 
+      async CreatePostAPI (post) { return axios.post("api/posts", post) },
+      async GetPostAPI (id) { return axios.get("api/posts/"+id) },
+      async GetAllPostAPI () { return axios.get('/api/posts') },
+      async EditPostAPI (id, post) { return axios.put("api/posts/"+id, post) },
+      async DeletePostAPI (id) { return axios.delete("api/posts/"+id)  },
+      // Dialog Methods
+      openformDialog () {
+        this.postId = 0
+        this.postItem = {}
+        this.formDialog = true
+        this.formTitle = "Crear Nuevo Post"
+        this.isEditing = false
+      },
+      editItemDialog (item) {
+        this.postId = item.id
+        this.postItem = Object.assign({}, item)
+        this.formDialog = true
+        this.formTitle = "Editar Post"
+        this.isEditing = true
+      },
+      deleteItemDialog (item) {
+        this.postId = item.id
+        this.postItem = Object.assign({}, item)
+        this.deleteDialog = true
       },
       onSubmit () {
         const { valid } = this.$refs.form.validate()
