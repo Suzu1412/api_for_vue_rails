@@ -1,109 +1,145 @@
 <template>
-<v-sheet class="pa-12" rounded>
-    <v-card class="mx-auto px-6 py-8" max-width="344">
-      <v-form ref="form"
-        v-model="isValid"
-        validate-on="input lazy"
-        @submit.prevent="onSubmit"
-      >
-        <v-text-field
-          v-model="title"
-          :readonly="loading"
-          :rules="[required]"
-          class="mb-2"
-          label="Título"
-          clearable
-        ></v-text-field>
-
-        <v-text-field
-          v-model="body"
-          :readonly="loading"
-          :rules="[required]"
-          label="Texto"
-          placeholder="Ingresa el texto"
-          clearable
-        ></v-text-field>
-
-        <br>
-
-        <v-btn v-if="isEditing"
-          @click="updatePost"
-          :disabled="!isValid"
-          :loading="loading"
-          color="success"
-          size="large"
-          type="submit"
-          variant="elevated"
-          block
+  <v-sheet class="pa-12" rounded>
+    <v-data-table
+      :headers="headers"
+      :items="postsArray"
+      :sort-by="[{ key: 'id', order: 'asc' }]"
+    >
+      <template v-slot:top>
+        <v-toolbar
+          flat
         >
-          Actualizar Post
-        </v-btn>
+          <v-toolbar-title>Listado de Posts</v-toolbar-title>
+          <v-divider
+            class="mx-4"
+            inset
+            vertical
+          ></v-divider>
+          <v-spacer></v-spacer>
+          
+          <v-dialog max-width="500" v-model="formDialog">
+            <template v-slot:activator="{ props: activatorProps }">
+              <v-btn
+                v-bind="activatorProps"
+                color="surface-variant"
+                text="Nuevo Post"
+                variant="flat"
+                @click="openformDialog"
+              ></v-btn>
+            </template>
 
-        <v-btn v-if="isEditing"
-          @click="cancelEdit"
-          :loading="loading"
-          color="error"
-          size="large"
-          type="submit"
-          variant="elevated"
-          block
+            <template v-slot:default="{ isActive }">
+              <v-card :title="formTitle">
+                <v-form ref="form"
+                        v-model="isValid"
+                        validate-on="input"
+                        @submit.prevent="onSubmit"
+                      >
+
+                <v-card-text>
+                  <v-container>
+                      <v-row>
+                          <v-col cols="12" md="12" sm="12">
+                            <v-text-field
+                              v-model="postItem.title"
+                              :readonly="loading"
+                              :rules="[requiredInput]"
+                              label="Título"
+                              clearable
+                            ></v-text-field>
+                          </v-col>
+                          <v-col cols="12" md="12" sm="12">
+                            <v-text-field
+                            v-model="postItem.body"
+                            :readonly="loading"
+                            :rules="[requiredInput]"
+                            label="Texto"
+                            placeholder="Ingresa el texto"
+                            clearable
+                          ></v-text-field>
+                          </v-col>
+
+                          <br>
+                      </v-row>
+                  </v-container>
+                </v-card-text>
+                <v-card-actions>
+                  <v-spacer></v-spacer>
+                    <v-btn
+                      text="Cerrar"
+                      color="blue-darken-1"
+                      variant="text"
+                      @click="formDialog = false"
+                    >
+                  </v-btn>
+
+                  <v-btn v-if="!isEditing"
+                    :disabled="!isValid"
+                    text="Crear"
+                    color="blue-darken-1"
+                    variant="text"
+                    @click="CreatePost"
+                  >
+                  </v-btn>
+                  <v-btn v-else
+                    :disabled="!isValid"
+                    text="Editar"
+                    color="blue-darken-1"
+                    variant="text"
+                    @click="EditPost"
+                  >
+                  </v-btn>
+                </v-card-actions>
+                </v-form>
+              </v-card>
+            </template>
+          </v-dialog>
+          <v-dialog v-model="deleteDialog" max-width="500px">
+            <v-card>
+              <v-card-title class="text-h5">Eliminar: {{postItem.title}}</v-card-title>
+              <v-card-actions>
+                <v-spacer></v-spacer>
+                <v-btn color="blue-darken-1" variant="text" @click="deleteDialog = false">Cancel</v-btn>
+                <v-btn color="blue-darken-1" variant="text" @click="DeletePost">OK</v-btn>
+                <v-spacer></v-spacer>
+              </v-card-actions>
+            </v-card>
+          </v-dialog>
+        </v-toolbar>
+      </template>
+      <template v-slot:item.actions="{ item }">
+        <v-icon
+          size="small"
+          @click="editItemDialog(item)"
         >
-          Cancelar
-        </v-btn>
-
-        <v-btn v-else
-          @click="createPost"
-          :disabled="!isValid"
-          :loading="loading"
-          color="primary"
-          size="large"
-          type="submit"
-          variant="elevated"
-          block
+          mdi-pencil
+        </v-icon>
+        <v-icon
+          size="small"
+          @click="deleteItemDialog(item)"
         >
-          Crear nuevo Post
-        </v-btn>
-
+          mdi-delete
+        </v-icon>
+      </template>
+      <template v-slot:no-data>
         <v-btn
-          @click="reset"
-          color="info"
-          size="large"
-          type="submit"
-          variant="elevated"
-          block
+          color="primary"
+          @click="GetAllPost()"
         >
-          Reset
+          Cargar Post
         </v-btn>
-
-      </v-form>
-    </v-card>
-
-    <li v-for="(post, index) in postsArray" :key="index" class="list-group-item">{{index + 1}}. {{post}}</li>
-
+      </template>
+    </v-data-table>
   </v-sheet>
-
-
-  </template>
+</template>
 
 <script setup>
-  import { ref, onMounted } from 'vue'
-  import axios from 'axios'
+  
 
-  const API_URL = "http://localhost:3000/posts/"  
   const postsArray = ref([])
-  const axiosInstance = axios.create({
-    baseURL: '/'
-  });
-
 
   onMounted(async() => {
-    axios.get('/api/posts')
-      .then(response => {
-        postsArray.value = response.data
-      })
-      .catch(error => {
-        //console.log(error)
-      })
+    
 
       
   })
@@ -141,16 +177,13 @@
         }
     },
     async mounted(){
-      //console.log(newPosts)
-      // const { valid } = await this.$refs.form.validate()
-
-      //const res = await axios.get(API_URL)
-      // newPosts.value = res.data
-
-      //console.log(res.data)
-
-      //console.log(newPosts.value[0])
-
+      axios.get('/api/posts')
+      .then(response => {
+        postsArray.value = response.data
+      })
+      .catch(error => {
+        //console.log(error)
+      })
     },
     methods: {
       async createPost () {
