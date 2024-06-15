@@ -275,7 +275,7 @@
   const editItemDialog = (item) => {
     postId.value = item.id
     postItem.value = { 
-      title: item.tile, 
+      title: item.title, 
       body: item.body,
     }
     formDialog.value = true
@@ -286,7 +286,7 @@
   const deleteItemDialog = (item) => {
     postId.value = item.id
     postItem.value = { 
-      title: item.tile, 
+      title: item.title, 
       body: item.body,
     }
     deleteDialog.value = true
