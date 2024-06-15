@@ -274,7 +274,10 @@
 
   const editItemDialog = (item) => {
     postId.value = item.id
-    postItem.value = Object.assign({}, item)
+    postItem.value = { 
+      title: item.tile, 
+      body: item.body,
+    }
     formDialog.value = true
     formTitle.value = "Editar Post"
     isEditing.value = true
@@ -282,7 +285,10 @@
 
   const deleteItemDialog = (item) => {
     postId.value = item.id
-    postItem.value = Object.assign({}, item)
+    postItem.value = { 
+      title: item.tile, 
+      body: item.body,
+    }
     deleteDialog.value = true
   }
 
