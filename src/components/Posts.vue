@@ -175,7 +175,6 @@
     GetAllPost()
   })
 
-  // Submit Methods:
   const onSubmit = () => {
       const { valid } = form.value.validate()
       if (!valid) return
@@ -183,6 +182,7 @@
       setTimeout(() => (loading = false), 2000)
   }
 
+  // Post Methods:
   const CreatePost = async() => {
     const { valid } = await form.value.validate()
     if (!valid) return
@@ -191,15 +191,7 @@
       .then(async response =>{
         toast.success('¡Se ha creado exitosamente!', { autoclose: 1000 } )
         form.value.reset()
-
-        GetPostAPI(response.data.id)
-          .then(async response => {
-            postsArray.value.push(response.data)
-          })
-          .catch(error => {
-          console.log(error)
-          toast.error('Fallo: ' + error)
-        })
+        GetPost(response.data.id)
       })
       .catch(error => {
         console.log(error)
@@ -215,14 +207,7 @@
       .then(async response =>{
         toast.success('¡Se ha editado exitosamente!', { autoclose: 1000 } )
         form.value.reset()
-        GetPostAPI(response.data.id)
-          .then(async response =>{
-            postsArray.value.splice(postsArray.value.findIndex(item => item.id === response.data.id), 1, response.data)
-          })
-          .catch(error => {
-            console.log(error)
-            toast.error('Fallo: ' + error)
-          })
+        GetPost(response.data.id)
       })
       .catch(error => {
         console.log(error)
@@ -233,7 +218,8 @@
   const DeletePost = async() => {
     DeletePostAPI(postId.value)
       .then(async response =>{
-        postsArray.value.splice(postsArray.value.findIndex(item => item.id === postId.value), 1)
+        let index = postsArray.value.findIndex(item => item.id === postId.value)
+        postsArray.value.splice(index, 1)
         deleteDialog.value = false
         toast.success('¡Se ha eliminado exitosamente!', { autoclose: 1000 } )
       })
@@ -252,6 +238,22 @@
         console.log(error)
         toast.error('Fallo: ' + error)
       })
+  }
+
+  const GetPost = async(id) => {
+    GetPostAPI(id)
+      .then(async response => {
+        let index = postsArray.value.findIndex(item => item.id === response.data.id)
+        if (index === -1){ // If it doesn't exist add to Array (Used on Create)
+          postsArray.value.push(response.data)
+        }else { // Else Replace value on the same Index (Used on Edit)
+          postsArray.value.splice(index, 1, response.data)
+        }
+      })
+      .catch(error => {
+        console.log(error)
+        toast.error('Fallo: ' + error)
+    })
   }
 
   // REST Methods API
