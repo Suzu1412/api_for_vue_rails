@@ -208,9 +208,9 @@
           })
       },
       async DeletePost () {
-        this.DeletePostAPI(postId.value)
+        this.DeletePostAPI(this.postId)
           .then(async response =>{
-            let index = postsArray.value.findIndex(item => item.id === postId.value)
+            let index = this.postsArray.value.findIndex(item => item.id === this.postId)
             this.postsArray.value.splice(index, 1)
             this.deleteDialog = false
             toast.success('¡Se ha eliminado exitosamente!', { autoclose: 1000 } )
@@ -280,7 +280,7 @@
         const { valid } = this.$refs.form.validate()
         if (!valid) return
       },
-    required (input) {
+      requiredInput (input) {
         return !!input || 'Campo requerido'
       },
     }
