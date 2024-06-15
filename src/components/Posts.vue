@@ -133,8 +133,6 @@
       </template>
     </v-data-table>
   </v-sheet>
-
-
 </template>
 
 <script setup>
@@ -143,39 +141,47 @@
   import { toast } from 'vue3-toastify'
   import 'vue3-toastify/dist/index.css'
 
+  // Post Variables
   const postsArray = ref([])
   const postId = ref(0)
+  const postItem = ref({
+    title: '',
+    body: '',
+  })
+  // Form Variables
   const form = ref(null) // Para acceder al ref Form lo inicializamos como Null
   const loading = ref(false)
   const isEditing = ref(false)
   const isValid = ref(null)
   const formTitle = ref('')
+  // Dialog Variables
   const formDialog = ref(false)
   const deleteDialog = ref(false)
-
-  const postItem = ref({
-    title: '',
-    body: '',
-  })
-
   // Data Table Variables
   const headers = ref([
-          {
-            align: 'start',
-            key: 'id',
-            sortable: true,
-            title: 'ID',
-          },
-          { key: 'title', title: 'Título' },
-          { key: 'body', title: 'Texto' },
-          { key: 'actions', title: 'Acciones', sortable: false },
-        ])
+    {
+      align: 'start',
+      key: 'id',
+      sortable: true,
+      title: 'ID',
+    },
+    { key: 'title', title: 'Título' },
+    { key: 'body', title: 'Texto' },
+    { key: 'actions', title: 'Acciones', sortable: false },
+  ])
 
   onMounted(async() => {
-    GetAllPost()
+    GetAllPostAPI()
+      .then(response => {
+        postsArray.value = response.data
+      })
+      .catch(error => {
+        console.log(error)
+        toast.error('Fallo: ' + error)
+      })
   })
 
-  // Methods:
+  // Submit Methods:
   const onSubmit = () => {
       const { valid } = form.value.validate()
       if (!valid) return
@@ -187,35 +193,19 @@
     const { valid } = await form.value.validate()
     if (!valid) return
 
-    axios.post("api/posts", postItem.value)
-        .then(async response =>{
-          toast.success('¡Se ha creado exitosamente!', { autoclose: 1000 } )
-          form.value.reset()
-          const newPost = await axios.get("api/posts/"+response.data.id)
-          postsArray.value.push(newPost.data)
-        })
-        .catch(error => {
+    CreatePostAPI(postItem.value)
+      .then(async response =>{
+        toast.success('¡Se ha creado exitosamente!', { autoclose: 1000 } )
+        form.value.reset()
+
+        GetPostAPI(response.data.id)
+          .then(async response => {
+            postsArray.value.push(response.data)
+          })
+          .catch(error => {
           console.log(error)
           toast.error('Fallo: ' + error)
         })
-  }
-
-  const GetPost = async(id) => {
-    axios.get("api/posts/"+id)
-    .then(response => {
-      return response.data
-    })
-    .catch(error => {
-      console.log(error)
-      toast.error('Fallo' + error)
-      return null
-    })
-  }
-
-  const GetAllPost = async() => {
-    axios.get('/api/posts')
-      .then(response => {
-        postsArray.value = response.data
       })
       .catch(error => {
         console.log(error)
@@ -227,31 +217,44 @@
     const { valid } = await form.value.validate()
     if (!valid) return
 
-    axios.put("api/posts/"+postId.value, postItem.value)
-        .then(async response =>{
-          toast.success('¡Se ha editado exitosamente!', { autoclose: 1000 } )
-          form.value.reset()
-          const newPost = await axios.get("api/posts/"+postId.value)
-          postsArray.value.splice(postsArray.value.findIndex(item => item.id === postId.value), 1, newPost.data)
-        })
-        .catch(error => {
-          console.log(error)
-          toast.error('Fallo: ' + error)
-        })
+    EditPostAPI(postId.value, postItem.value)
+      .then(async response =>{
+        toast.success('¡Se ha editado exitosamente!', { autoclose: 1000 } )
+        form.value.reset()
+        GetPostAPI(response.data.id)
+          .then(async response =>{
+            postsArray.value.splice(postsArray.value.findIndex(item => item.id === response.data.id), 1, response.data)
+          })
+          .catch(error => {
+            console.log(error)
+            toast.error('Fallo: ' + error)
+          })
+      })
+      .catch(error => {
+        console.log(error)
+        toast.error('Fallo: ' + error)
+      })
   }
 
   const DeletePost = async() => {
-    axios.delete("api/posts/"+postId.value)
-        .then(async response =>{
-          postsArray.value.splice(postsArray.value.findIndex(item => item.id === postId.value), 1)
-          deleteDialog.value = false
-          toast.success('¡Se ha eliminado exitosamente!', { autoclose: 1000 } )
-        })
-        .catch(error => {
-          console.log(error)
-          toast.error('Fallo: ' + error)
-        })
+    DeletePostAPI(postId.value)
+      .then(async response =>{
+        postsArray.value.splice(postsArray.value.findIndex(item => item.id === postId.value), 1)
+        deleteDialog.value = false
+        toast.success('¡Se ha eliminado exitosamente!', { autoclose: 1000 } )
+      })
+      .catch(error => {
+        console.log(error)
+        toast.error('Fallo: ' + error)
+      })
   }
+
+  // REST Methods API
+  const CreatePostAPI = async(post) => { return axios.post("api/posts", post) }
+  const GetPostAPI = async(id) => { return axios.get("api/posts/"+id) }
+  const GetAllPostAPI = async() => { return axios.get('/api/posts') }
+  const EditPostAPI = async(id, post) => { return axios.put("api/posts/"+id, post) }
+  const DeletePostAPI = async(id) => { return axios.delete("api/posts/"+id) }
 
   // Dialog Methods
   const openformDialog = () => {
@@ -268,7 +271,6 @@
     formDialog.value = true
     formTitle.value = "Editar Post"
     isEditing.value = true
-    console.log(isValid)
   }
 
   const deleteItemDialog = (item) => {
