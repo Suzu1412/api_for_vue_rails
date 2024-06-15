@@ -260,14 +260,20 @@
       },
       editItemDialog (item) {
         this.postId = item.id
-        this.postItem = Object.assign({}, item)
+        this.postItem = { 
+          title: item.title, 
+          body: item.body,
+        }
         this.formDialog = true
         this.formTitle = "Editar Post"
         this.isEditing = true
       },
       deleteItemDialog (item) {
         this.postId = item.id
-        this.postItem = Object.assign({}, item)
+        this.postItem = { 
+          title: item.title, 
+          body: item.body,
+        }
         this.deleteDialog = true
       },
       onSubmit () {
